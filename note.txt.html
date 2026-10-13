@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>note.txt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#120e18; --ink:#ece4f1; --dim:#85798f; --pink:#ff8fab; --green:#8be9a8; --yellow:#ffd98a; --blue:#8fd3ff; --red:#ff7b8e;
+}
+*{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0%,#241830 0%,var(--bg) 60%) fixed;color:var(--ink);font-family:'Fira Code',ui-monospace,Menlo,Consolas,monospace;font-size:14px;line-height:1.8;overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent 0 2px,rgba(255,255,255,.012) 2px 3px)}
+#term{max-width:760px;margin:0 auto;padding:46px 16px 170px;white-space:pre-wrap;word-break:break-word}
+.p{color:var(--green)} .d{color:var(--dim)} .pk{color:var(--pink);text-shadow:0 0 12px rgba(255,143,171,.35)} .y{color:var(--yellow)} .b{color:var(--blue)} .r{color:var(--red)}
+.kw{color:#ff8fab}.st{color:#ffd98a}.fn{color:#8fd3ff}.cm{color:#85798f}.nm{color:#c3a6ff}
+.cur{display:inline-block;width:8px;height:1.05em;background:var(--ink);vertical-align:text-bottom;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+#dock{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 35%);padding:26px 14px calc(12px + env(safe-area-inset-bottom,0px));display:none;z-index:4}
+#dock .in{max-width:760px;margin:0 auto}
+#chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font:inherit;font-size:13px;color:var(--pink);background:rgba(255,143,171,.06);border:1px solid #4a3b55;border-radius:6px;padding:6px 12px;cursor:pointer}
+.chip:active{background:#2a2033}
+#row{display:flex;align-items:center;gap:8px;border-top:1px solid #2a2033;padding-top:10px}
+#inp{flex:1;background:transparent;border:0;outline:0;color:var(--ink);font:inherit;font-size:16px;caret-color:var(--pink)}
+#skip{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;font:inherit;font-size:12px;color:var(--dim);background:rgba(18,14,24,.8);border:1px solid #2a2033;border-radius:6px;padding:4px 10px;cursor:pointer;z-index:5}
+.heart{position:fixed;top:-50px;pointer-events:none;color:var(--pink);text-shadow:0 0 10px rgba(255,143,171,.7);animation:fall linear forwards;z-index:9}
+@keyframes fall{to{transform:translateY(115vh) translateX(var(--dx,0px)) rotate(var(--rot,0deg))}}
+.hbox{text-align:center;margin:18px 0 6px;display:block}
+.hbox svg{width:150px;height:150px;filter:drop-shadow(0 0 18px rgba(255,90,130,.7));animation:beat 1.1s ease-in-out infinite;transform-origin:center}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.14)}30%{transform:scale(1)}45%{transform:scale(1.1)}}
+.hbox .t{display:block;color:var(--pink);font-size:18px;margin-top:10px;text-shadow:0 0 14px rgba(255,143,171,.6)}
+</style>
+</head>
+<body>
+<button id="skip">skip ▸▸</button>
+<div id="term"></div>
+<div id="dock"><div class="in">
+  <div id="chips"></div>
+  <div id="row"><span class="p">bachha@dil:~$</span><input id="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="help likhiye"></div>
+</div></div>
+
+<script>
+const term=document.getElementById('term');
+const dock=document.getElementById('dock');
+const inp=document.getElementById('inp');
+let skipping=false;
+
+const sleep=ms=>new Promise(r=>setTimeout(r,skipping?0:ms));
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const sc=()=>window.scrollTo({top:document.body.scrollHeight});
+
+async function type(text,cls='',speed=26){
+  const span=document.createElement('span'); if(cls) span.className=cls;
+  term.appendChild(span);
+  const cur=document.createElement('span'); cur.className='cur'; term.appendChild(cur);
+  for(const ch of text){ span.textContent+=ch; await sleep(speed); if(!skipping) sc(); }
+  cur.remove(); sc();
+}
+function line(html='',cls=''){
+  const s=document.createElement('span'); if(cls) s.className=cls; s.innerHTML=html+'\n'; term.appendChild(s); sc();
+}
+async function cmd(c){
+  const pr=document.createElement('span'); pr.innerHTML='<span class="p">bachha@dil:~$</span> '; term.appendChild(pr);
+  await type(c,'',48); line(''); await sleep(300);
+}
+async function out(lines,cls='',gap=420,speed=22){
+  for(const l of lines){
+    if(l===''){line('');await sleep(gap*0.6);continue;}
+    await type(l,cls,speed); line(''); await sleep(gap);
+  }
+}
+async function bar(label,ms=1800){
+  const span=document.createElement('span'); span.className='y'; term.appendChild(span);
+  const steps=24;
+  for(let i=0;i<=steps;i++){
+    span.textContent=label+' ['+'█'.repeat(i)+'░'.repeat(steps-i)+'] '+Math.round(i/steps*100)+'%';
+    sc(); await sleep(ms/steps);
+  }
+  line('');
+}
+
+async function code(lines,delay=420){
+  for(let i=0;i<lines.length;i++){
+    line('<span class="d">'+String(i+1).padStart(2,' ')+'  </span>'+lines[i]);
+    await sleep(delay);
+  }
+}
+async function pingline(t){ line('64 bytes from bachha-ka-dil: icmp_seq='+t+' time=0.1 ms','d'); await sleep(650); }
+function hearts(n){
+  const sy=['♥','♡','❤','💗','💖'];
+  for(let i=0;i<n;i++) setTimeout(()=>{
+    const h=document.createElement('div'); h.className='heart'; h.textContent=sy[Math.floor(Math.random()*sy.length)];
+    const d=3.5+Math.random()*3;
+    h.style.left=Math.random()*98+'vw'; h.style.fontSize=(14+Math.random()*22)+'px';
+    h.style.animationDuration=d+'s'; h.style.setProperty('--dx',(Math.random()*60-30)+'px'); h.style.setProperty('--rot',(Math.random()*80-40)+'deg');
+    document.body.appendChild(h); setTimeout(()=>h.remove(),d*1000+200);
+  },i*70);
+}
+function showHeart(){
+  const d=document.createElement('div'); d.className='hbox';
+  d.innerHTML='<svg viewBox="0 0 32 29.6"><defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9ab5"/><stop offset="1" stop-color="#ff4d7a"/></linearGradient></defs><path fill="url(#hg)" d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.9,16,21.2,16,21.2s16-11.3,16-21.2C32,3.8,28.2,0,23.6,0z"/></svg><span class="t">mera pyaara bachha, i love you</span>';
+  term.appendChild(d); sc();
+}
+
+async function intro(){
+  await out([
+    '// pumpkin ki taraf se, apne pyaare bachha ke liye.',
+    '// ye copy-paste nahi hai. maine khud banaya hai.',
+    '// thoda ulta seedha lage toh maaf karna, dil se hai.'
+  ],'d',600,20);
+  line('');
+
+  await cmd('ssh bachha@pumpkin-ka-dil');
+  await out(['connecting...','connected.','(ye connection kabhi nahi tootega)'],'d',500);
+  line('');
+
+  await cmd('ping -c 3 pumpkin-ka-dil');
+  await pingline(1); await pingline(2); await pingline(3);
+  await out(['3 packets sent, 3 received, 0% packet loss','(pyaar mein koi loss nahi hota)'],'p',500,18);
+  line('');
+
+  await cmd('cat note.txt');
+  await out([
+    'suno na, mere pyaare bachha.',
+    '',
+    'aap aaj low feel kar rahi thi,',
+    'mujhe bilkul achha nahi laga.',
+    'toh socha kuch karta hu.',
+    'mujhe coding aati hai, toh yahi bana diya.',
+    'perfect nahi hai, par dil se banaya hai.',
+    '',
+    'ek baat bolu?',
+    'aap jitna sochti ho na, usse kahin zyada achhi ho.',
+    '',
+    'aur ye jo aap sochti ho ki kuch nahi hoga,',
+    'aisa kuch nahi hai. aap sab kar logi.',
+    'sab. mujhe pata hai.',
+    '',
+    'bas itna overthink mat kiya karo,',
+    'itna sochogi toh tabiyat kharab ho jayegi.',
+    'aur aapki tabiyat meri sabse badi tension hai.',
+    '',
+    'main hu na.',
+    'har situation mein. aapke paas.'
+  ],'',260,28);
+  line('');
+
+  await cmd('cat sad.py');
+  await code([
+    '<span class="kw">try</span>:',
+    '    bachha.<span class="fn">feel_low</span>()',
+    '<span class="kw">except</span> <span class="nm">Exception</span>:',
+    '    pumpkin.<span class="fn">hug</span>(bachha)',
+    '    pumpkin.<span class="fn">say</span>(<span class="st">"sab theek ho jayega"</span>)',
+    '<span class="kw">finally</span>:',
+    '    bachha.<span class="fn">smile</span>()  <span class="cm"># hamesha chalta hai</span>'
+  ],520);
+  line('');
+  await cmd('python3 sad.py');
+  await out(['hug sent ✓','message delivered ✓','smile loaded ✓'],'p',650,24);
+  line('');
+
+  await cmd('./overthinking.sh');
+  await out(['running...'],'d',800);
+  await out(['ERROR: process killed','reason: mere bachha ko iski zaroorat nahi hai'],'r',550);
+  line('');
+
+  await cmd('top');
+  await out([
+    'PID   PROCESS              CPU',
+    '1     pyaar                99.9%',
+    '2     aapki_yaad           88.0%',
+    '3     hamesha_saath        50.0%',
+    '4     overthinking          0.0%   (killed)'
+  ],'y',420,12);
+  line('');
+
+  await cmd('ls ~/bachha/');
+  await out([
+    'hasi.mp3          smile.png          sukoon.txt',
+    'meri_favourite.exe   dhadkan.log     hamesha_saath.sh'
+  ],'b',500,14);
+  line('');
+
+  await cmd('cat love.log');
+  await out([
+    'aap ho na, toh sab theek lagta hai.',
+    'jab aap hasti ho, mera din ban jaata hai.',
+    'aapka message aata hai toh sab chhod ke pehle wahi dekhta hu.',
+    'aapki awaaz sunke dil ko sukoon milta hai.',
+    'aap meri favourite ho. bas, itna hi.',
+    'ERROR: dil ka storage full. sirf mere bachha ke liye reserved.'
+  ],'pk',520,26);
+  line('');
+
+  await cmd('cat promises.json');
+  await code([
+    '{',
+    '  <span class="fn">"saath_dunga"</span>: <span class="st">"hamesha"</span>,',
+    '  <span class="fn">"chhodunga"</span>: <span class="kw">false</span>,',
+    '  <span class="fn">"aapki_hasi"</span>: <span class="st">"meri zimmedari"</span>,',
+    '  <span class="fn">"bure_din"</span>: <span class="st">"saath mein nikalenge"</span>,',
+    '  <span class="fn">"pyaar"</span>: <span class="nm">Infinity</span>',
+    '}'
+  ],420);
+  line('');
+
+  await cmd('git add . && git commit -m "bachha ko hamesha khush rakhna hai"');
+  await out(['[main 4a7e1b9] bachha ko hamesha khush rakhna hai','1 file changed, ∞ insertions(+), 0 deletions(-)'],'d',500,14);
+  await cmd('git push origin love');
+  await out(['Writing objects: 100% (10/10), done.','To pumpkin-ka-dil','   main -> bachha-ka-dil'],'p',500,14);
+  line('');
+
+  await cmd('npm install pyaar');
+  await bar('installing pyaar',2200);
+  await out(['added 1 package: pyaar@∞','found 0 vulnerabilities (aapke saath dar nahi lagta)'],'p',500,16);
+  line('');
+
+  await cmd('sudo make bachha_smile');
+  await bar('compiling happiness',2400);
+  await out(['build successful. 0 errors, 0 warnings.'],'p',500);
+  hearts(60);
+  line('');
+  showHeart();
+  hearts(90);
+  await sleep(1500);
+  line('');
+  await out(['mera pyaara bachha,','i love you. bahut bahut.'],'pk',700,80);
+  line('');
+  await out(['— aapka pumpkin'],'d',500,40);
+  line('');
+
+  await cmd('cat forever.py');
+  await code([
+    '<span class="kw">while</span> <span class="kw">True</span>:',
+    '    pumpkin.<span class="fn">love</span>(bachha)',
+    '    <span class="cm"># ye loop kabhi break nahi hoga</span>'
+  ],700);
+  hearts(50);
+  line('');
+  line('aap bhi try kijiye. type kijiye: help','b');
+  finish();
+}
+
+const R={
+  help:()=>['commands: love, bachha, pumpkin, miss, hug, kiss, ping, sudo, exit, fix, mood, clear','(type kijiye, ya neeche tap kijiye)'],
+  love:()=>{hearts(100);return ['mera pyaara bachha, i love you.']},
+  bachha:()=>{hearts(40);return ['bachha = meri favourite','bachha = meri sabse pyaari','bachha = mera pyaara bachha','(ye teeno kabhi change nahi honge)']},
+  pumpkin:()=>{hearts(30);return ['pumpkin yahin hai.','hamesha.']},
+  miss:()=>{hearts(25);return ['pumpkin aapko bahut miss kar raha hai.','bahut zyada.']},
+  hug:()=>{hearts(30);return ['sending hug...','████████████████████ 100%','delivered. (thoda tight wala)']},
+  kiss:()=>{hearts(40);return ['sending kiss...','████████████████████ 100%','delivered. 😘 (maathe pe)']},
+  promise:()=>['saath dunga: hamesha','chhodunga: false','aapki hasi: meri zimmedari'],
+  ping:()=>['64 bytes from pumpkin-ka-dil: time=0.1 ms','(itna paas hu)'],
+  sudo:()=>['bachha is already owner of this dil.','permission granted: hamesha.'],
+  exit:()=>['exit: ye connection kabhi exit nahi hota. 💗'],
+  fix:()=>{hearts(30);return ['scanning...','found: overthinking, thakaan','patching...','done. mere bachha theek ho jayegi. pumpkin yahin hai.']},
+  mood:()=>['mood: off','kal tak: better','mere hote hue: hamesha better'],
+};
+function render(c){
+  const k=c.trim().toLowerCase();
+  line('<span class="p">bachha@dil:~$</span> '+esc(c));
+  if(k==='clear'){term.innerHTML='';return}
+  if(R[k]) R[k]().forEach(l=>line(esc(l),'pk'));
+  else if(k){ line('command not found: '+esc(k),'r'); line('help likhiye','d'); }
+  line('');
+}
+function finish(){
+  dock.style.display='block';
+  const ch=document.getElementById('chips');
+  ['help','love','bachha','pumpkin','hug','kiss','ping','sudo','exit'].forEach(c=>{
+    const b=document.createElement('button'); b.className='chip'; b.textContent=c; b.onclick=()=>render(c); ch.appendChild(b);
+  });
+  sc();
+}
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ render(inp.value); inp.value=''; } });
+document.getElementById('skip').onclick=()=>{ skipping=true; document.getElementById('skip').style.display='none'; };
+intro();
+</script>
+</body>
+</html>
